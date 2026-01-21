@@ -116,11 +116,18 @@
         }
 
         .export-button {
-            background: #6496DC;
+            background: #2E71FC;
+            box-shadow: 0 4px 15px rgba(46, 113, 252, 0.3);
         }
 
         .export-button:hover:not(:disabled) {
             background: #265DCE;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 113, 252, 0.4);
+        }
+        
+        .export-button:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .detect-model-btn {
