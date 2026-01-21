@@ -1,19 +1,6 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/kkt/check",
-      "dest": "/api/check.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  "rewrites": [
+    { "source": "/api/kkt/check", "destination": "/api/check.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
