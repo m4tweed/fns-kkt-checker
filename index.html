@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Массовая проверка ККТ в реестре ФНС</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Stolzl', -apple-system, BlinkMacSystemFont, 'SF Pro', 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #6496DC 0%, #0B1E46 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #0B1E46;
+            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #545C6B;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #222D41;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E2E8EF;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: inherit;
+            color: #222D41;
+        }
+
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: #6496DC;
+            box-shadow: 0 0 0 3px rgba(100, 150, 220, 0.15);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: #8C949F;
+            margin-top: 5px;
+        }
+
+        button {
+            background: #2E71FC;
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(46, 113, 252, 0.3);
+        }
+
+        button:hover {
+            background: #265DCE;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 113, 252, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .export-button {
+            background: #6496DC;
+        }
+
+        .export-button:hover:not(:disabled) {
+            background: #265DCE;
+        }
+
+        .results {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .results.visible {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-card.total {
+            background: linear-gradient(135deg, #6496DC 0%, #393962 100%);
+            color: white;
+        }
+
+        .stat-card.success {
+            background: linear-gradient(135deg, #2DDB9C 0%, #0EAD73 100%);
+            color: white;
+        }
+
+        .stat-card.error {
+            background: linear-gradient(135deg, #EB5757 0%, #C62626 100%);
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 2px solid #E2E8EF;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #E2E8EF;
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 500;
+            color: #0B1E46;
+            font-size: 14px;
+            border-bottom: 2px solid #C0C9D4;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #E2E8EF;
+            font-size: 14px;
+            color: #222D41;
+        }
+
+        tbody tr:hover {
+            background: #E2E8EF;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .status-badge.registered {
+            background: #FFE5E5;
+            color: #C62626;
+            border: 1px solid #EB5757;
+        }
+
+        .status-badge.in-registry {
+            background: #D4F8EC;
+            color: #0EAD73;
+            border: 1px solid #2DDB9C;
+        }
+
+        .status-badge.not-registered {
+            background: #E2E8EF;
+            color: #545C6B;
+            border: 1px solid #C0C9D4;
+        }
+
+        .status-badge.lost {
+            background: #FFD6D6;
+            color: #8B1A1A;
+            border: 1px solid #C62626;
+        }
+
+        .status-badge.error {
+            background: #FFF4E5;
+            color: #F1C90A;
+            border: 1px solid #FFDF47;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #E2E8EF;
+            border-top: 4px solid #2E71FC;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-text {
+            color: #545C6B;
+            font-size: 14px;
+        }
+
+        .error-message {
+            background: #EB5757;
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.visible {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧾 Массовая проверка ККТ в реестре ФНС</h1>
+        <p class="subtitle">Проверка статуса регистрации контрольно-кассовой техники по заводским номерам</p>
+
+        <form id="checkForm">
+            <div class="form-group">
+                <label for="model">Модель ККТ</label>
+                <select id="model" required>
+                    <option value="">Выберите модель...</option>
+                    <option value="0189">БФР-112ФС</option>
+                    <option value="0124">MicroPay-ФАС</option>
+                    <option value="0244">СК-1</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="serialNumbers">Заводские номера ККТ</label>
+                <textarea 
+                    id="serialNumbers" 
+                    placeholder="Введите заводские номера, каждый на новой строке&#10;Например:&#10;00000001&#10;00000002&#10;00000003"
+                    required
+                ></textarea>
+                <div class="hint">Введите каждый заводской номер на отдельной строке<br>
+                <strong>⚠️ Рекомендация:</strong> не более 500 касс за раз для избежания блокировки</div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit">Проверить кассы</button>
+                <button type="button" class="export-button" id="exportButton" onclick="exportToCSV()" disabled>
+                    💾 Экспортировать в CSV
+                </button>
+            </div>
+        </form>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="progress-text" id="progressText">Проверка касс...</div>
+        </div>
+
+        <div class="results" id="results">
+            <h2 style="margin-bottom: 20px; color: #0B1E46; font-weight: 600;">Результаты проверки</h2>
+            
+            <div class="stats" id="stats"></div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Заводской номер</th>
+                            <th>Статус</th>
+                            <th>Описание</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/kkt';
+        const DELAY_BETWEEN_REQUESTS = 100; // ms (уменьшено, т.к. наш сервер сам контролирует задержки)
+        const MAX_RECOMMENDED_BATCH = 500; // максимальное рекомендуемое количество касс за раз
+        const WARNING_BATCH_SIZE = 200; // порог для предупреждения
+
+        const modelNames = {
+            '0189': 'БФР-112ФС',
+            '0124': 'MicroPay-ФАС',
+            '0244': 'СК-1'
+        };
+
+        // Глобальная переменная для хранения последних результатов
+        let lastResults = [];
+        let lastModelCode = '';
+
+        document.getElementById('checkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const modelCode = document.getElementById('model').value;
+            const serialNumbersText = document.getElementById('serialNumbers').value;
+            const serialNumbers = serialNumbersText
+                .split('\n')
+                .map(s => s.trim())
+                .filter(s => s.length > 0);
+
+            if (serialNumbers.length === 0) {
+                showError('Пожалуйста, введите хотя бы один заводской номер');
+                return;
+            }
+
+            // Предупреждение о большом количестве касс
+            if (serialNumbers.length > MAX_RECOMMENDED_BATCH) {
+                const confirmed = confirm(
+                    `⚠️ ВНИМАНИЕ!\n\n` +
+                    `Вы пытаетесь проверить ${serialNumbers.length} касс.\n` +
+                    `Максимальная рекомендация: ${MAX_RECOMMENDED_BATCH} касс за раз.\n\n` +
+                    `Большое количество запросов может привести к блокировке со стороны ФНС.\n\n` +
+                    `Рекомендуем разбить список на несколько частей.\n\n` +
+                    `Продолжить проверку?`
+                );
+                if (!confirmed) {
+                    return;
+                }
+            } else if (serialNumbers.length > WARNING_BATCH_SIZE) {
+                // Информируем о времени для больших списков
+                const estimatedMinutes = Math.ceil((serialNumbers.length * 0.6) / 60); // ~0.6 сек на кассу
+                const confirmed = confirm(
+                    `Будет проверено ${serialNumbers.length} касс.\n` +
+                    `Примерное время: ~${estimatedMinutes} мин.\n\n` +
+                    `Между запросами установлены задержки для защиты от блокировки.\n\n` +
+                    `Продолжить?`
+                );
+                if (!confirmed) {
+                    return;
+                }
+            }
+
+            hideError();
+            hideResults();
+            showLoading();
+
+            const results = [];
+            let processed = 0;
+
+            for (const serialNumber of serialNumbers) {
+                try {
+                    const result = await checkKKT(modelCode, serialNumber);
+                    results.push({
+                        serialNumber,
+                        ...result
+                    });
+                    processed++;
+                    updateProgress(processed, serialNumbers.length);
+                    
+                    // Добавляем задержку между запросами
+                    if (processed < serialNumbers.length) {
+                        await sleep(DELAY_BETWEEN_REQUESTS);
+                    }
+                } catch (error) {
+                    results.push({
+                        serialNumber,
+                        check_status: -1,
+                        check_result: 'Ошибка при проверке: ' + error.message
+                    });
+                    processed++;
+                    updateProgress(processed, serialNumbers.length);
+                }
+            }
+
+            hideLoading();
+            displayResults(results, modelCode);
+        });
+
+        async function checkKKT(modelCode, factoryNumber) {
+            const response = await fetch(`${API_BASE}/check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    model_code: modelCode,
+                    factory_number: factoryNumber
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            return data;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function updateProgress(current, total) {
+            document.getElementById('progressText').textContent = 
+                `Проверка касс... ${current} из ${total}`;
+        }
+
+        function displayResults(results, modelCode) {
+            // Сохраняем результаты для экспорта
+            lastResults = results;
+            lastModelCode = modelCode;
+            
+            const stats = calculateStats(results);
+            renderStats(stats, modelCode);
+            renderTable(results);
+            showResults();
+            
+            // Активируем кнопку экспорта
+            document.getElementById('exportButton').disabled = false;
+        }
+
+        function exportToCSV() {
+            if (!lastResults || lastResults.length === 0) {
+                alert('Нет данных для экспорта');
+                return;
+            }
+
+            // Формируем CSV заголовок (используем табуляцию как разделитель)
+            const headers = ['Номер кассы', 'Статус', 'Описание'];
+            const csvRows = [headers.join('\t')];
+
+            // Добавляем данные
+            lastResults.forEach(result => {
+                const kktStatus = getKKTStatus(result);
+                const serialNumber = result.serialNumber || '';
+                const status = kktStatus.text || '';
+                const description = (result.check_result || 'Экземпляр ККТ включен в реестр ККТ, не зарегистрирован в налоговых органах').replace(/\t/g, ' ');
+                
+                // Формируем строку с табуляцией
+                const row = [
+                    serialNumber,
+                    status,
+                    description
+                ];
+                
+                csvRows.push(row.join('\t'));
+            });
+
+            // Создаем CSV строку
+            const csvContent = '\uFEFF' + csvRows.join('\n'); // \uFEFF - BOM для корректной кодировки UTF-8 в Excel
+
+            // Создаем Blob и скачиваем файл
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            // Формируем имя файла с датой и моделью
+            const modelName = modelNames[lastModelCode] || 'ККТ';
+            const date = new Date().toISOString().slice(0, 10);
+            const fileName = `Проверка_${modelName}_${date}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function getKKTStatus(result) {
+            // Определяем детальный статус ККТ
+            // Возвращает: { status: 'registered' | 'in_registry' | 'not_in_registry' | 'lost' | 'error', text: string }
+            
+            const text = result.check_result || '';
+            
+            // Статус 0: Ошибка проверки
+            if (result.check_status === -1) {
+                return {
+                    status: 'error',
+                    text: 'Ошибка проверки'
+                };
+            }
+            
+            // Статус 1: В реестре + зарегистрирована в налоговых органах
+            if (result.check_status === 0 && (
+                text.includes('уже используется') ||
+                text.includes('Повторная регистрация не допускается')
+            )) {
+                return {
+                    status: 'registered',
+                    text: 'Зарегистрирована'
+                };
+            }
+            
+            // Статус 2: В реестре, но НЕ зарегистрирована в налоговых органах
+            if (result.check_status === 1) {
+                return {
+                    status: 'in_registry',
+                    text: 'В реестре (не зарегистрирована)'
+                };
+            }
+            
+            // Статус 3: В реестре утерянных или похищенных
+            if (result.check_status === 0 && (
+                text.includes('утерянных') ||
+                text.includes('реестре утерянных') ||
+                text.includes('похищенных') ||
+                text.includes('реестре похищенных')
+            )) {
+                return {
+                    status: 'lost',
+                    text: 'Утеряна/похищена'
+                };
+            }
+            
+            // Статус 4: НЕ в реестре
+            return {
+                status: 'not_in_registry',
+                text: 'Не в реестре'
+            };
+        }
+        
+        function isKKTRegistered(result) {
+            // Для обратной совместимости и подсчета статистики
+            const status = getKKTStatus(result);
+            return status.status === 'registered' || status.status === 'in_registry';
+        }
+
+        function calculateStats(results) {
+            const total = results.length;
+            const registered = results.filter(r => getKKTStatus(r).status === 'registered').length;
+            const inRegistry = results.filter(r => getKKTStatus(r).status === 'in_registry').length;
+            const lost = results.filter(r => getKKTStatus(r).status === 'lost').length;
+            const notInRegistry = results.filter(r => getKKTStatus(r).status === 'not_in_registry').length;
+            const errors = results.filter(r => getKKTStatus(r).status === 'error').length;
+
+            return { total, registered, inRegistry, lost, notInRegistry, errors };
+        }
+
+        function renderStats(stats, modelCode) {
+            const statsContainer = document.getElementById('stats');
+            const modelName = modelNames[modelCode];
+            
+            const errorCardContent = stats.errors > 0 
+                ? `<button onclick="retryErrors()" style="margin-top: 10px; padding: 6px 12px; font-size: 12px; background: white; color: #F1C90A; border: 1px solid #F1C90A; border-radius: 6px; cursor: pointer;">🔄 Попробовать еще раз</button>`
+                : '';
+            
+            statsContainer.innerHTML = `
+                <div class="stat-card total">
+                    <div class="stat-value">${stats.total}</div>
+                    <div class="stat-label">Всего проверено</div>
+                    <div class="stat-label" style="margin-top: 5px; font-size: 12px;">${modelName}</div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-value">${stats.registered}</div>
+                    <div class="stat-label">Зарегистрированы</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-value">${stats.inRegistry}</div>
+                    <div class="stat-label">В реестре (не зарег.)</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #C62626 0%, #000E27 100%); color: white;">
+                    <div class="stat-value">${stats.lost}</div>
+                    <div class="stat-label">Утеряна/похищена</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #8C949F 0%, #545C6B 100%); color: white;">
+                    <div class="stat-value">${stats.notInRegistry}</div>
+                    <div class="stat-label">Не в реестре</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #FFDF47 0%, #F1C90A 100%); color: #000E27;">
+                    <div class="stat-value">${stats.errors}</div>
+                    <div class="stat-label">Ошибка проверки</div>
+                    ${errorCardContent}
+                </div>
+            `;
+        }
+
+        function renderTable(results) {
+            const tbody = document.getElementById('resultsTable');
+            tbody.innerHTML = results.map((result, index) => {
+                const kktStatus = getKKTStatus(result);
+                
+                let statusClass, statusText;
+                if (kktStatus.status === 'registered') {
+                    statusClass = 'registered';
+                    statusText = '❌ Зарегистрирована';
+                } else if (kktStatus.status === 'in_registry') {
+                    statusClass = 'in-registry';
+                    statusText = '✅ В реестре (не зарег.)';
+                } else if (kktStatus.status === 'lost') {
+                    statusClass = 'lost';
+                    statusText = '🚫 Утеряна/похищена';
+                } else if (kktStatus.status === 'error') {
+                    statusClass = 'error';
+                    statusText = '⚠️ Ошибка проверки';
+                } else {
+                    statusClass = 'not-registered';
+                    statusText = '❌ Не в реестре';
+                }
+                
+                return `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><strong>${result.serialNumber}</strong></td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>${result.check_result || 'Экземпляр ККТ включен в реестр ККТ, не зарегистрирован в налоговых органах'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('visible');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('visible');
+        }
+
+        function showResults() {
+            document.getElementById('results').classList.add('visible');
+        }
+
+        function hideResults() {
+            document.getElementById('results').classList.remove('visible');
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.classList.add('visible');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('visible');
+        }
+
+        async function retryErrors() {
+            if (!lastResults || lastResults.length === 0) {
+                alert('Нет данных для повторной проверки');
+                return;
+            }
+
+            // Фильтруем только кассы с ошибками
+            const errorResults = lastResults.filter(r => getKKTStatus(r).status === 'error');
+            
+            if (errorResults.length === 0) {
+                alert('Нет касс с ошибками для повторной проверки');
+                return;
+            }
+
+            const confirmed = confirm(
+                `Будет выполнена повторная проверка ${errorResults.length} касс с ошибками.\n\nПродолжить?`
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+
+            // Скрываем результаты и показываем загрузку
+            hideError();
+            showLoading();
+
+            const retryResultsMap = new Map();
+            let processed = 0;
+
+            // Повторяем проверку только для касс с ошибками
+            for (const errorResult of errorResults) {
+                try {
+                    const result = await checkKKT(lastModelCode, errorResult.serialNumber);
+                    retryResultsMap.set(errorResult.serialNumber, {
+                        serialNumber: errorResult.serialNumber,
+                        ...result
+                    });
+                    processed++;
+                    updateProgress(processed, errorResults.length);
+                    
+                    if (processed < errorResults.length) {
+                        await sleep(DELAY_BETWEEN_REQUESTS);
+                    }
+                } catch (error) {
+                    retryResultsMap.set(errorResult.serialNumber, {
+                        serialNumber: errorResult.serialNumber,
+                        check_status: -1,
+                        check_result: 'Ошибка при проверке: ' + error.message
+                    });
+                    processed++;
+                    updateProgress(processed, errorResults.length);
+                }
+            }
+
+            // Обновляем результаты: заменяем старые ошибки на новые результаты
+            lastResults = lastResults.map(result => {
+                if (retryResultsMap.has(result.serialNumber)) {
+                    return retryResultsMap.get(result.serialNumber);
+                }
+                return result;
+            });
+
+            hideLoading();
+            displayResults(lastResults, lastModelCode);
+        }
+    </script>
+</body>
+</html>
