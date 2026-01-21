@@ -1,1 +1,5 @@
-{}
+{
+  "rewrites": [
+    { "source": "/api/kkt/check", "destination": "/api/index" }
+  ]
+}
