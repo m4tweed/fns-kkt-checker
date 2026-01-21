@@ -133,10 +133,20 @@
         }
 
         .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            display: flex;
+            flex-direction: column;
             gap: 15px;
             margin-bottom: 30px;
+        }
+
+        .stats-total {
+            width: 100%;
+        }
+
+        .stats-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
         }
 
         .stat-card {
@@ -619,31 +629,35 @@
                 : '';
             
             statsContainer.innerHTML = `
-                <div class="stat-card total">
-                    <div class="stat-value">${stats.total}</div>
-                    <div class="stat-label">Всего проверено</div>
-                    <div class="stat-label" style="margin-top: 5px; font-size: 12px;">${modelName}</div>
+                <div class="stats-total">
+                    <div class="stat-card total">
+                        <div class="stat-value">${stats.total}</div>
+                        <div class="stat-label">Всего проверено</div>
+                        <div class="stat-label" style="margin-top: 5px; font-size: 12px;">${modelName}</div>
+                    </div>
                 </div>
-                <div class="stat-card error">
-                    <div class="stat-value">${stats.registered}</div>
-                    <div class="stat-label">Зарегистрированы</div>
-                </div>
-                <div class="stat-card success">
-                    <div class="stat-value">${stats.inRegistry}</div>
-                    <div class="stat-label">В реестре (не зарег.)</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #C62626 0%, #000E27 100%); color: white;">
-                    <div class="stat-value">${stats.lost}</div>
-                    <div class="stat-label">Утеряна/похищена</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #8C949F 0%, #545C6B 100%); color: white;">
-                    <div class="stat-value">${stats.notInRegistry}</div>
-                    <div class="stat-label">Не в реестре</div>
-                </div>
-                <div class="stat-card" style="background: linear-gradient(135deg, #FFDF47 0%, #F1C90A 100%); color: #000E27;">
-                    <div class="stat-value">${stats.errors}</div>
-                    <div class="stat-label">Ошибка проверки</div>
-                    ${errorCardContent}
+                <div class="stats-details">
+                    <div class="stat-card error">
+                        <div class="stat-value">${stats.registered}</div>
+                        <div class="stat-label">Зарегистрированы</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-value">${stats.inRegistry}</div>
+                        <div class="stat-label">В реестре (не зарег.)</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #C62626 0%, #000E27 100%); color: white;">
+                        <div class="stat-value">${stats.lost}</div>
+                        <div class="stat-label">Утеряна/похищена</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #8C949F 0%, #545C6B 100%); color: white;">
+                        <div class="stat-value">${stats.notInRegistry}</div>
+                        <div class="stat-label">Не в реестре</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #FFDF47 0%, #F1C90A 100%); color: #000E27;">
+                        <div class="stat-value">${stats.errors}</div>
+                        <div class="stat-label">Ошибка проверки</div>
+                        ${errorCardContent}
+                    </div>
                 </div>
             `;
         }
