@@ -6,6 +6,7 @@ import json
 import requests
 import time
 import urllib3
+import os
 
 # Отключаем предупреждения о непроверенных HTTPS запросах
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -32,17 +33,19 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         # Обработка GET запроса для получения списка моделей
         try:
-            # Выполняем запрос к API ФНС для получения списка моделей
-            url = f'{API_BASE}?query=/kkt/models'
-            response = requests.get(url, headers=HEADERS, timeout=10, verify=False)
-            response.raise_for_status()
+            # Загружаем список моделей из локального JSON файла
+            # В Vercel файлы находятся относительно корня проекта
+            models_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'kkt_models.json')
+            
+            with open(models_file, 'r', encoding='utf-8') as f:
+                models = json.load(f)
             
             # Отправляем ответ
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
-            self.wfile.write(json.dumps(response.json()).encode())
+            self.wfile.write(json.dumps({'models': models}).encode())
             
         except Exception as e:
             self.send_response(500)

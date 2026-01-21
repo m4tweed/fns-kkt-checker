@@ -45,3 +45,8 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Temporary parsing scripts
+parse_models.py
+parse_models_simple.py
+extract_models_browser.js

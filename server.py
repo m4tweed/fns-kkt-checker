@@ -40,13 +40,20 @@ def index():
 
 @app.route('/api/kkt/models', methods=['GET'])
 def get_models():
-    """Получить список всех моделей ККТ"""
+    """Получить список всех моделей ККТ из локального файла"""
     try:
-        response = requests.get(f'{API_BASE}?query=/kkt/models', headers=HEADERS, timeout=10, verify=False)
-        response.raise_for_status()
-        return jsonify(response.json())
+        import json
+        import os
+        
+        # Путь к файлу с моделями
+        models_file = os.path.join(os.path.dirname(__file__), 'kkt_models.json')
+        
+        with open(models_file, 'r', encoding='utf-8') as f:
+            models = json.load(f)
+        
+        return jsonify({'models': models})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e), 'models': []}), 500
 
 
 @app.route('/api/kkt/check', methods=['POST'])
