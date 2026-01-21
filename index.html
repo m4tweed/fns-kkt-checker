@@ -882,22 +882,48 @@
             document.getElementById('progressText').textContent = 'Загрузка списка моделей ККТ...';
 
             // Получаем полный список моделей из API ФНС
-            const models = await getAllModels();
+            const allModels = await getAllModels();
             
-            if (models.length === 0) {
+            if (allModels.length === 0) {
                 hideLoading();
                 alert('Не удалось получить список моделей ККТ');
                 return;
             }
 
+            // Приоритетные модели - проверяем в первую очередь
+            const priorityCodes = ['0189', '0124', '0148', '0244', '0078'];
+            
+            // Разделяем модели на приоритетные и остальные
+            const priorityModels = [];
+            const otherModels = [];
+            
+            allModels.forEach(model => {
+                if (priorityCodes.includes(model.code)) {
+                    priorityModels.push(model);
+                } else {
+                    otherModels.push(model);
+                }
+            });
+            
+            // Сортируем приоритетные в нужном порядке
+            priorityModels.sort((a, b) => 
+                priorityCodes.indexOf(a.code) - priorityCodes.indexOf(b.code)
+            );
+            
+            // Объединяем: сначала приоритетные, потом остальные
+            const models = [...priorityModels, ...otherModels];
+            
             document.getElementById('progressText').textContent = 
-                `Проверка ${models.length} моделей ККТ...`;
+                `Проверка моделей ККТ (приоритет: наши модели)...`;
 
             for (let i = 0; i < models.length; i++) {
                 const model = models[i];
                 const modelName = model.name || model.model_name || `Модель ${model.code}`;
+                const isPriority = priorityCodes.includes(model.code);
+                const priorityLabel = isPriority ? ' [приоритет]' : '';
+                
                 document.getElementById('progressText').textContent = 
-                    `Проверка ${modelName} (${i + 1}/${models.length})...`;
+                    `Проверка ${modelName}${priorityLabel} (${i + 1}/${models.length})...`;
 
                 try {
                     const result = await checkKKT(model.code, serialNumber);
