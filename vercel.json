@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/api/kkt/check", "destination": "/api/index" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/index.html" }
   ]
 }
