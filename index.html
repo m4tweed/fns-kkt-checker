@@ -585,6 +585,37 @@
             return data;
         }
 
+        async function getAllModels() {
+            try {
+                const response = await fetch(`${API_BASE}/models`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Возвращаем массив моделей с кодом и названием
+                return data.models || [];
+            } catch (error) {
+                console.error('Ошибка получения списка моделей:', error);
+                // Фоллбэк на наши 3 модели если API не работает
+                return [
+                    { code: '0189', name: 'БФР-112ФС' },
+                    { code: '0124', name: 'MicroPay-ФАС' },
+                    { code: '0244', name: 'СК-1' }
+                ];
+            }
+        }
+
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
@@ -848,18 +879,25 @@
 
             closeDetectModal();
             showLoading();
-            document.getElementById('progressText').textContent = 'Определение модели кассы...';
+            document.getElementById('progressText').textContent = 'Загрузка списка моделей ККТ...';
 
-            const models = [
-                { code: '0189', name: 'БФР-112ФС' },
-                { code: '0124', name: 'MicroPay-ФАС' },
-                { code: '0244', name: 'СК-1' }
-            ];
+            // Получаем полный список моделей из API ФНС
+            const models = await getAllModels();
+            
+            if (models.length === 0) {
+                hideLoading();
+                alert('Не удалось получить список моделей ККТ');
+                return;
+            }
+
+            document.getElementById('progressText').textContent = 
+                `Проверка ${models.length} моделей ККТ...`;
 
             for (let i = 0; i < models.length; i++) {
                 const model = models[i];
+                const modelName = model.name || model.model_name || `Модель ${model.code}`;
                 document.getElementById('progressText').textContent = 
-                    `Проверка модели ${model.name} (${i + 1}/${models.length})...`;
+                    `Проверка ${modelName} (${i + 1}/${models.length})...`;
 
                 try {
                     const result = await checkKKT(model.code, serialNumber);
@@ -869,15 +907,24 @@
                     if (kktStatus.status === 'registered' || kktStatus.status === 'in_registry') {
                         hideLoading();
                         
-                        // Устанавливаем найденную модель
-                        document.getElementById('model').value = model.code;
+                        const modelName = model.name || model.model_name || `Модель ${model.code}`;
+                        
+                        // Проверяем есть ли эта модель в нашем select
+                        const selectElement = document.getElementById('model');
+                        const optionExists = Array.from(selectElement.options).some(opt => opt.value === model.code);
+                        
+                        if (optionExists) {
+                            // Устанавливаем найденную модель
+                            selectElement.value = model.code;
+                        }
                         
                         alert(
                             `✅ Модель определена!\n\n` +
-                            `Модель: ${model.name}\n` +
+                            `Модель: ${modelName}\n` +
+                            `Код модели: ${model.code}\n` +
                             `Заводской номер: ${serialNumber}\n` +
-                            `Статус: ${kktStatus.text}\n\n` +
-                            `Модель автоматически выбрана в форме.`
+                            `Статус: ${kktStatus.text}` +
+                            (optionExists ? `\n\nМодель автоматически выбрана в форме.` : `\n\n⚠️ Эта модель отсутствует в списке для проверки, но касса найдена в реестре.`)
                         );
                         return;
                     }
