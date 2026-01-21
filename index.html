@@ -307,12 +307,17 @@
         <form id="checkForm">
             <div class="form-group">
                 <label for="model">Модель ККТ</label>
-                <select id="model" required>
-                    <option value="">Выберите модель...</option>
-                    <option value="0189">БФР-112ФС</option>
-                    <option value="0124">MicroPay-ФАС</option>
-                    <option value="0244">СК-1</option>
-                </select>
+                <div style="display: flex; align-items: center;">
+                    <select id="model" required style="flex: 1;">
+                        <option value="">Выберите модель...</option>
+                        <option value="0189">БФР-112ФС</option>
+                        <option value="0124">MicroPay-ФАС</option>
+                        <option value="0244">СК-1</option>
+                    </select>
+                    <button type="button" class="detect-model-btn" onclick="openDetectModal()">
+                        🔍 Определить модель
+                    </button>
+                </div>
             </div>
 
             <div class="form-group">
@@ -358,6 +363,26 @@
                     </thead>
                     <tbody id="resultsTable"></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно определения модели -->
+    <div class="modal" id="detectModal">
+        <div class="modal-content">
+            <h3>🔍 Определение модели ККТ</h3>
+            <p style="color: #545C6B; font-size: 14px; margin-bottom: 15px;">
+                Введите заводской номер кассы, и мы автоматически определим её модель
+            </p>
+            <input 
+                type="text" 
+                id="detectInput" 
+                placeholder="Например: 1992320030038003"
+                maxlength="20"
+            />
+            <div class="modal-buttons">
+                <button class="cancel" onclick="closeDetectModal()">Отмена</button>
+                <button onclick="detectModel()">Определить</button>
             </div>
         </div>
     </div>
@@ -720,6 +745,85 @@
 
         function hideError() {
             document.getElementById('errorMessage').classList.remove('visible');
+        }
+
+        function openDetectModal() {
+            document.getElementById('detectModal').classList.add('visible');
+            document.getElementById('detectInput').value = '';
+            document.getElementById('detectInput').focus();
+        }
+
+        function closeDetectModal() {
+            document.getElementById('detectModal').classList.remove('visible');
+        }
+
+        async function detectModel() {
+            const serialNumber = document.getElementById('detectInput').value.trim();
+            
+            if (!serialNumber) {
+                alert('Пожалуйста, введите заводской номер');
+                return;
+            }
+
+            closeDetectModal();
+            showLoading();
+            document.getElementById('progressText').textContent = 'Определение модели кассы...';
+
+            const models = [
+                { code: '0189', name: 'БФР-112ФС' },
+                { code: '0124', name: 'MicroPay-ФАС' },
+                { code: '0244', name: 'СК-1' }
+            ];
+
+            for (let i = 0; i < models.length; i++) {
+                const model = models[i];
+                document.getElementById('progressText').textContent = 
+                    `Проверка модели ${model.name} (${i + 1}/${models.length})...`;
+
+                try {
+                    const result = await checkKKT(model.code, serialNumber);
+                    const kktStatus = getKKTStatus(result);
+                    
+                    // Если касса найдена в реестре (зарегистрирована или просто в реестре)
+                    if (kktStatus.status === 'registered' || kktStatus.status === 'in_registry') {
+                        hideLoading();
+                        
+                        // Устанавливаем найденную модель
+                        document.getElementById('model').value = model.code;
+                        
+                        alert(
+                            `✅ Модель определена!\n\n` +
+                            `Модель: ${model.name}\n` +
+                            `Заводской номер: ${serialNumber}\n` +
+                            `Статус: ${kktStatus.text}\n\n` +
+                            `Модель автоматически выбрана в форме.`
+                        );
+                        return;
+                    }
+                    
+                    // Задержка между проверками
+                    if (i < models.length - 1) {
+                        await sleep(DELAY_BETWEEN_REQUESTS);
+                    }
+                } catch (error) {
+                    console.error(`Ошибка при проверке модели ${model.name}:`, error);
+                    // Продолжаем проверку следующей модели
+                    if (i < models.length - 1) {
+                        await sleep(DELAY_BETWEEN_REQUESTS);
+                    }
+                }
+            }
+
+            // Если не нашли ни в одной модели
+            hideLoading();
+            alert(
+                `❌ Модель не определена\n\n` +
+                `Касса с номером ${serialNumber} не найдена ни в одной из известных моделей.\n\n` +
+                `Возможные причины:\n` +
+                `• Номер введен неправильно\n` +
+                `• Касса еще не произведена\n` +
+                `• Модель не поддерживается сервисом`
+            );
         }
 
         async function retryErrors() {
