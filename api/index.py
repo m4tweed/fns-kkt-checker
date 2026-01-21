@@ -29,6 +29,28 @@ last_request_time = 0
 
 
 class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Обработка GET запроса для получения списка моделей
+        try:
+            # Выполняем запрос к API ФНС для получения списка моделей
+            url = f'{API_BASE}?query=/kkt/models'
+            response = requests.get(url, headers=HEADERS, timeout=10, verify=False)
+            response.raise_for_status()
+            
+            # Отправляем ответ
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(response.json()).encode())
+            
+        except Exception as e:
+            self.send_response(500)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({'error': str(e), 'models': []}).encode())
+    
     def do_POST(self):
         global last_request_time
         
