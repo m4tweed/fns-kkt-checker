@@ -123,6 +123,87 @@
             background: #265DCE;
         }
 
+        .detect-model-btn {
+            background: #6496DC;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .detect-model-btn:hover {
+            background: #265DCE;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin: 0 0 20px 0;
+            color: #0B1E46;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #E2E8EF;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #6496DC;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-buttons button {
+            padding: 10px 20px;
+        }
+
+        .modal-buttons .cancel {
+            background: #E2E8EF;
+            color: #545C6B;
+        }
+
+        .modal-buttons .cancel:hover {
+            background: #C0C9D4;
+        }
+
         .results {
             margin-top: 40px;
             display: none;
