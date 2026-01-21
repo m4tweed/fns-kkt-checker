@@ -1,6 +1,11 @@
 {
+  "functions": {
+    "api/*.py": {
+      "runtime": "python3.9"
+    }
+  },
   "rewrites": [
-    { "source": "/api/kkt/check", "destination": "/api/check.py" },
+    { "source": "/api/kkt/check", "destination": "/api/check" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
